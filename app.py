@@ -2,6 +2,9 @@ import gradio as gr
 from PIL import Image, ExifTags
 import pandas as pd
 import os
+import datetime
+
+SUPPORTED_FORMATS = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp')  # Add formats as needed
 
 def extract_metadata(uploaded_files, progress=gr.Progress()):
     outputs = []
@@ -10,6 +13,12 @@ def extract_metadata(uploaded_files, progress=gr.Progress()):
         if idx < num_files:
             image_path = uploaded_files[idx]
             filename = os.path.basename(image_path)
+            
+            # Check if the file is in a supported format
+            if not image_path.lower().endswith(SUPPORTED_FORMATS):
+                outputs.extend([None, filename, "Unsupported format", "", ""])
+                continue  # Skip unsupported formats
+            
             try:
                 img = Image.open(image_path)
                 img.thumbnail((600, 600))  # Adjusted thumbnail size
@@ -50,6 +59,7 @@ def extract_metadata(uploaded_files, progress=gr.Progress()):
         progress((idx + 1) / 100, desc=f"Processing image {idx + 1} of {num_files}")
     return outputs
 
+
 def save_metadata(*args):
     data = []
     for i in range(100):
@@ -68,8 +78,11 @@ def save_metadata(*args):
             })
     df = pd.DataFrame(data, columns=['Filename', 'Title', 'Description', 'Keywords'])
     try:
-        df.to_csv('edited_metadata.csv', index=False)
-        return "Data saved successfully to 'edited_metadata.csv'!"
+        # Generate timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_filename = f'edited_metadata_{timestamp}.csv'
+        df.to_csv(csv_filename, index=False)
+        return f"Data saved successfully to '{csv_filename}'!"
     except Exception as e:
         return f"Error saving data: {e}"
 
